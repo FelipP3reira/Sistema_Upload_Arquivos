@@ -8,7 +8,8 @@ import { ErroTamanhoExcedido, ErroTipoNaoPermitido } from '../../shared/erros/er
 import { prisma } from '../../shared/prisma/cliente.js';
 import { armazenamento } from '../../shared/storage/index.js';
 import { lerCabecalho } from '../../shared/upload/ler-cabecalho.js';
-import { detectarTipoPermitido } from '../../shared/upload/tipos-permitidos.js';
+import { detectarTipoPermitido, ehImagem } from '../../shared/upload/tipos-permitidos.js';
+import { gerarThumbnail } from './thumbnail.service.js';
 
 // 4100 bytes cobrem as assinaturas que o file-type precisa para os tipos que
 // aceitamos, sem bufferizar o arquivo inteiro.
@@ -36,7 +37,7 @@ export async function armazenarArquivo(donoId: string, parte: MultipartFile): Pr
     throw new ErroTamanhoExcedido('Arquivo maior que o limite permitido.');
   }
 
-  return prisma.arquivo.create({
+  const arquivo = await prisma.arquivo.create({
     data: {
       chave,
       nomeOriginal: parte.filename,
@@ -45,6 +46,18 @@ export async function armazenarArquivo(donoId: string, parte: MultipartFile): Pr
       donoId,
     },
   });
+
+  // Thumbnail é best-effort: se o sharp tropeçar num arquivo estranho, o upload
+  // não falha por causa disso.
+  if (ehImagem(tipo.mime)) {
+    try {
+      return await gerarThumbnail(arquivo);
+    } catch (erro) {
+      console.error('Falha ao gerar thumbnail:', erro);
+    }
+  }
+
+  return arquivo;
 }
 
 // Nome de armazenamento aleatório, com sharding por prefixo. O nome original do

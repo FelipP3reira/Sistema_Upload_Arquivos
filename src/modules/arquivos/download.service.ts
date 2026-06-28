@@ -2,7 +2,11 @@ import type { Readable } from 'node:stream';
 
 import type { Arquivo } from '@prisma/client';
 
-import { ErroNaoAutorizado, ErroProibido } from '../../shared/erros/erros-aplicacao.js';
+import {
+  ErroNaoAutorizado,
+  ErroNaoEncontrado,
+  ErroProibido,
+} from '../../shared/erros/erros-aplicacao.js';
 import { armazenamento } from '../../shared/storage/index.js';
 import { assinaturaValida } from '../../shared/url/url-assinada.js';
 import { buscarArquivo } from './arquivos.service.js';
@@ -21,6 +25,19 @@ export async function obterParaDownload(
   autorizarAcesso(arquivo, acesso);
   const stream = await armazenamento.ler(arquivo.chave);
   return { arquivo, stream };
+}
+
+export async function obterThumbnail(
+  id: string,
+  acesso: AcessoConteudo,
+): Promise<{ stream: Readable }> {
+  const arquivo = await buscarArquivo(id);
+  autorizarAcesso(arquivo, acesso);
+  if (!arquivo.thumbnailChave) {
+    throw new ErroNaoEncontrado('Esse arquivo não tem thumbnail.');
+  }
+  const stream = await armazenamento.ler(arquivo.thumbnailChave);
+  return { stream };
 }
 
 // Dois caminhos de acesso: URL assinada válida (acesso temporário, sem precisar
