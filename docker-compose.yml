@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: upload-postgres
+    environment:
+      POSTGRES_USER: upload
+      POSTGRES_PASSWORD: upload
+      POSTGRES_DB: upload
+    ports:
+      - '5436:5432'
+    volumes:
+      - upload-pg:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U upload -d upload']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Storage S3-compatível para o modo de produção/desenvolvimento com S3.
+  # Em dev o padrão é o storage local; o MinIO fica aqui para quem quiser testar.
+  minio:
+    image: minio/minio:latest
+    container_name: upload-minio
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: upload
+      MINIO_ROOT_PASSWORD: uploadsecret
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - upload-minio:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  upload-pg:
+  upload-minio:

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+# arquivos enviados (storage local) — nunca versionar
+dados-upload/
+
+# ambiente local — nunca versionar segredos
+.env
+.env.*.local
