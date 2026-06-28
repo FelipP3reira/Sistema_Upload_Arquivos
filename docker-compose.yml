@@ -31,11 +31,6 @@ services:
       - '9001:9001'
     volumes:
       - upload-minio:/data
-    healthcheck:
-      test: ['CMD', 'mc', 'ready', 'local']
-      interval: 5s
-      timeout: 3s
-      retries: 10
 
 volumes:
   upload-pg:
